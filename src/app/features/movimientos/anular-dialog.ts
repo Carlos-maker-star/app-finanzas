@@ -18,7 +18,7 @@ import { Monto } from '../../shared/monto';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 mat-dialog-title>¿Anular este movimiento?</h2>
-    <mat-dialog-content class="flex! flex-col gap-4">
+    <mat-dialog-content class="flex! flex-col gap-4 *:shrink-0">
       <div class="flex items-start gap-4">
         <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-peligro-bg text-peligro-fg">
           <mat-icon aria-hidden="true">block</mat-icon>

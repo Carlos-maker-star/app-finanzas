@@ -39,7 +39,7 @@ function saldoValido(texto: string): boolean {
   template: `
     <h2 mat-dialog-title>{{ cuenta ? 'Editar cuenta' : 'Nueva cuenta' }}</h2>
     <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
-      <mat-dialog-content class="flex! flex-col gap-4 pt-2!">
+      <mat-dialog-content class="flex! flex-col gap-4 pt-2! *:shrink-0">
         @if (error()) {
           <p class="m-0 rounded-lg bg-peligro-bg px-3 py-2 text-sm text-peligro-fg" role="alert">{{ error() }}</p>
         }
