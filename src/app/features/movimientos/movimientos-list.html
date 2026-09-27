@@ -21,62 +21,82 @@
     <mat-form-field class="w-48">
       <mat-label>Periodo</mat-label>
       <mat-select [value]="filtros().periodo" (valueChange)="cambiarFiltro({ periodo: $event })">
+        <app-buscador-select [(texto)]="busquedaPeriodo" placeholder="Buscar mes o año…" />
         <mat-option value="todo">Todo el historial</mat-option>
-        @for (p of periodos; track p.valor) {
+        @for (p of periodosFiltrados(); track p.valor) {
           <mat-option [value]="p.valor">{{ p.etiqueta }}</mat-option>
+        } @empty {
+          <mat-option disabled>Sin resultados para “{{ busquedaPeriodo() }}”</mat-option>
         }
       </mat-select>
     </mat-form-field>
     <mat-form-field class="w-40">
       <mat-label>Tipo</mat-label>
       <mat-select [value]="filtros().tipo" (valueChange)="cambiarFiltro({ tipo: $event })">
+        <app-buscador-select [(texto)]="busquedaTipo" placeholder="Buscar tipo…" />
         <mat-option [value]="null">Todos</mat-option>
-        @for (t of tipos; track t) {
+        @for (t of tiposFiltrados(); track t) {
           <mat-option [value]="t">{{ etiquetasTipo[t].etiqueta }}</mat-option>
+        } @empty {
+          <mat-option disabled>Sin resultados para “{{ busquedaTipo() }}”</mat-option>
         }
       </mat-select>
     </mat-form-field>
     <mat-form-field class="w-44">
       <mat-label>Cuenta</mat-label>
       <mat-select [value]="filtros().cuentaId" (valueChange)="cambiarFiltro({ cuentaId: $event })">
+        <app-buscador-select [(texto)]="busquedaCuenta" placeholder="Buscar cuenta…" />
         <mat-option [value]="null">Todas</mat-option>
-        @for (c of catalogo.cuentas(); track c.id) {
+        @for (c of cuentasFiltradas(); track c.id) {
           <mat-option [value]="c.id">{{ c.nombre }}{{ c.archivada ? ' (archivada)' : '' }}</mat-option>
+        } @empty {
+          <mat-option disabled>Sin resultados para “{{ busquedaCuenta() }}”</mat-option>
         }
       </mat-select>
     </mat-form-field>
     <mat-form-field class="w-48">
       <mat-label>Categoría</mat-label>
       <mat-select [value]="filtros().categoriaId" (valueChange)="cambiarFiltro({ categoriaId: $event })">
+        <app-buscador-select [(texto)]="busquedaCategoria" placeholder="Buscar categoría…" />
         <mat-option [value]="null">Todas</mat-option>
-        <mat-optgroup label="Egresos">
-          @for (g of gruposEgreso(); track g.categoria.id) {
-            <ng-container>
-              <mat-option [value]="g.categoria.id">{{ g.categoria.nombre }}</mat-option>
-              @for (s of g.subcategorias; track s.id) {
-                <mat-option [value]="s.id"><span class="pl-4">{{ s.nombre }}</span></mat-option>
-              }
-            </ng-container>
-          }
-        </mat-optgroup>
-        <mat-optgroup label="Ingresos">
-          @for (g of gruposIngreso(); track g.categoria.id) {
-            <ng-container>
-              <mat-option [value]="g.categoria.id">{{ g.categoria.nombre }}</mat-option>
-              @for (s of g.subcategorias; track s.id) {
-                <mat-option [value]="s.id"><span class="pl-4">{{ s.nombre }}</span></mat-option>
-              }
-            </ng-container>
-          }
-        </mat-optgroup>
+        @if (gruposEgresoFiltrados().length) {
+          <mat-optgroup label="Egresos">
+            @for (g of gruposEgresoFiltrados(); track g.categoria.id) {
+              <ng-container>
+                <mat-option [value]="g.categoria.id">{{ g.categoria.nombre }}</mat-option>
+                @for (s of g.subcategorias; track s.id) {
+                  <mat-option [value]="s.id"><span class="pl-4">{{ s.nombre }}</span></mat-option>
+                }
+              </ng-container>
+            }
+          </mat-optgroup>
+        }
+        @if (gruposIngresoFiltrados().length) {
+          <mat-optgroup label="Ingresos">
+            @for (g of gruposIngresoFiltrados(); track g.categoria.id) {
+              <ng-container>
+                <mat-option [value]="g.categoria.id">{{ g.categoria.nombre }}</mat-option>
+                @for (s of g.subcategorias; track s.id) {
+                  <mat-option [value]="s.id"><span class="pl-4">{{ s.nombre }}</span></mat-option>
+                }
+              </ng-container>
+            }
+          </mat-optgroup>
+        }
+        @if (busquedaCategoria() && !gruposEgresoFiltrados().length && !gruposIngresoFiltrados().length) {
+          <mat-option disabled>Sin resultados para “{{ busquedaCategoria() }}”</mat-option>
+        }
       </mat-select>
     </mat-form-field>
     <mat-form-field class="w-40">
       <mat-label>Estado</mat-label>
       <mat-select [value]="filtros().estado" (valueChange)="cambiarFiltro({ estado: $event })">
+        <app-buscador-select [(texto)]="busquedaEstado" placeholder="Buscar estado…" />
         <mat-option [value]="null">Todos</mat-option>
-        @for (e of estados; track e) {
+        @for (e of estadosFiltrados(); track e) {
           <mat-option [value]="e">{{ etiquetasEstado[e].etiqueta }}</mat-option>
+        } @empty {
+          <mat-option disabled>Sin resultados para “{{ busquedaEstado() }}”</mat-option>
         }
       </mat-select>
     </mat-form-field>

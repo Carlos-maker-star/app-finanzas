@@ -17,6 +17,8 @@ import { mensajeDeError } from '../../core/errores';
 import { Categoria, CategoriaForm, TipoCategoria } from '../../core/models';
 import { NotificacionService } from '../../core/notificacion.service';
 import { TemaService } from '../../core/tema.service';
+import { BuscadorSelect } from '../../shared/buscador-select';
+import { filtrar } from '../../shared/buscar';
 import { ChipIcono } from '../../shared/chip-icono';
 
 export interface CategoriaDialogDatos {
@@ -30,7 +32,7 @@ export interface CategoriaDialogDatos {
   selector: 'app-categoria-dialog',
   imports: [
     ReactiveFormsModule, MatDialogModule, MatButton, MatButtonToggleGroup, MatButtonToggle, MatFormField, MatLabel, MatError,
-    MatHint, MatInput, MatSelect, MatOption, MatIcon, MatProgressBar, ChipIcono,
+    MatHint, MatInput, MatSelect, MatOption, MatIcon, MatProgressBar, BuscadorSelect, ChipIcono,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -58,11 +60,16 @@ export interface CategoriaDialogDatos {
         <mat-form-field>
           <mat-label>Dentro de (opcional)</mat-label>
           <mat-select formControlName="padreId">
+            <app-buscador-select [(texto)]="busquedaPadre" placeholder="Buscar categoría…" />
             <mat-option value="">Ninguna: es una categoría principal</mat-option>
-            @for (p of padres(); track p.id) {
+            @for (p of padresFiltrados(); track p.id) {
               <mat-option [value]="p.id">
                 <span class="flex items-center gap-2"><app-chip-icono [icono]="p.icono" [color]="p.color" tamanio="sm" />{{ p.nombre }}</span>
               </mat-option>
+            } @empty {
+              @if (busquedaPadre()) {
+                <mat-option disabled>Sin resultados para “{{ busquedaPadre() }}”</mat-option>
+              }
             }
           </mat-select>
           <mat-hint>
@@ -162,6 +169,9 @@ export class CategoriaDialog {
       .categorias()
       .filter((c) => c.tipo === this.valores().tipo && c.padre_id === null && c.id !== this.categoria?.id && c.activa),
   );
+
+  protected readonly busquedaPadre = signal('');
+  protected readonly padresFiltrados = computed(() => filtrar(this.padres(), this.busquedaPadre(), (c) => c.nombre));
 
   /** Color efectivo: el del padre si es subcategoría. */
   protected readonly colorElegido = computed(() => {

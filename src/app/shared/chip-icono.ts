@@ -17,7 +17,8 @@ const TAMANIOS = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span class="flex shrink-0 items-center justify-center" [class]="tamanio().caja" [style.background]="fondo()" [style.color]="color()">
-      <mat-icon [class]="tamanio().icono" aria-hidden="true">{{ icono() || 'category' }}</mat-icon>
+      <!-- m-0!: Material le pone margen a los íconos dentro de mat-option y los descentra -->
+      <mat-icon class="m-0!" [class]="tamanio().icono" aria-hidden="true">{{ icono() || 'category' }}</mat-icon>
     </span>
   `,
 })

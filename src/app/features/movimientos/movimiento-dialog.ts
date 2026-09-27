@@ -19,6 +19,8 @@ import { mensajeDeError } from '../../core/errores';
 import { hoyISO } from '../../core/formato';
 import { Movimiento, TipoMovimiento } from '../../core/models';
 import { NotificacionService } from '../../core/notificacion.service';
+import { BuscadorSelect } from '../../shared/buscador-select';
+import { filtrar, filtrarGrupos } from '../../shared/buscar';
 import { ChipIcono } from '../../shared/chip-icono';
 import { SolesPipe } from '../../shared/soles.pipe';
 import { aMovimientoForm, desdeMovimiento, validarMonto, validarMovimiento, ValoresMovimiento } from './movimiento-form';
@@ -36,7 +38,7 @@ export interface MovimientoDialogDatos {
   imports: [
     ReactiveFormsModule, MatDialogModule, MatButton, MatButtonToggleGroup, MatButtonToggle, MatCheckbox, MatFormField,
     MatLabel, MatError, MatHint, MatPrefix, MatInput, MatSelect, MatSelectTrigger, MatOption, MatIcon, MatProgressBar,
-    ChipIcono, SolesPipe,
+    BuscadorSelect, ChipIcono, SolesPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './movimiento-dialog.html',
@@ -94,6 +96,15 @@ export class MovimientoDialog {
       .filter((g) => visible(g.categoria.id, g.categoria.activa) || g.subcategorias.some((s) => visible(s.id, s.activa)))
       .map((g) => ({ ...g, subcategorias: g.subcategorias.filter((s) => visible(s.id, s.activa)) }));
   });
+
+  // Texto de los buscadores de cada lista
+  protected readonly busquedaCuenta = signal('');
+  protected readonly busquedaDestino = signal('');
+  protected readonly busquedaCategoria = signal('');
+
+  protected readonly cuentasOrigen = computed(() => filtrar(this.cuentas(), this.busquedaCuenta(), (c) => c.nombre));
+  protected readonly cuentasDestino = computed(() => filtrar(this.cuentas(), this.busquedaDestino(), (c) => c.nombre));
+  protected readonly gruposFiltrados = computed(() => filtrarGrupos(this.grupos(), this.busquedaCategoria()));
 
   protected readonly cuentaElegida = computed(() => this.catalogo.cuenta(this.valores().cuentaId));
   protected readonly destinoElegido = computed(() => this.catalogo.cuenta(this.valores().destinoId));

@@ -23,9 +23,10 @@
       }
     </mat-button-toggle-group>
 
-    <mat-form-field>
+    <!-- floatLabel="always": con prefijo, la etiqueta dentro del campo se monta sobre "S/" -->
+    <mat-form-field floatLabel="always">
       <mat-label>Monto</mat-label>
-      <span matTextPrefix class="mr-1 text-lg font-semibold text-subtle">S/</span>
+      <span matTextPrefix class="mr-2 font-mono text-2xl font-semibold text-subtle">S/</span>
       <input
         #montoInput
         matInput
@@ -60,12 +61,13 @@
         <mat-form-field>
           <mat-label>Cuenta</mat-label>
           <mat-select formControlName="cuentaId">
+            <app-buscador-select [(texto)]="busquedaCuenta" placeholder="Buscar cuenta…" />
             <mat-select-trigger>
               @if (cuentaElegida(); as c) {
                 <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
               }
             </mat-select-trigger>
-            @for (c of cuentas(); track c.id) {
+            @for (c of cuentasOrigen(); track c.id) {
               <mat-option [value]="c.id">
                 <span class="flex items-center gap-2">
                   <app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />
@@ -73,6 +75,8 @@
                   <span class="font-mono text-xs text-subtle">{{ c.saldo_actual | soles }}</span>
                 </span>
               </mat-option>
+            } @empty {
+              <mat-option disabled>Sin resultados para “{{ busquedaCuenta() }}”</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -84,15 +88,18 @@
         <mat-form-field>
           <mat-label>Desde</mat-label>
           <mat-select formControlName="cuentaId">
+            <app-buscador-select [(texto)]="busquedaCuenta" placeholder="Buscar cuenta…" />
             <mat-select-trigger>
               @if (cuentaElegida(); as c) {
                 <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
               }
             </mat-select-trigger>
-            @for (c of cuentas(); track c.id) {
+            @for (c of cuentasOrigen(); track c.id) {
               <mat-option [value]="c.id">
                 <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
               </mat-option>
+            } @empty {
+              <mat-option disabled>Sin resultados para “{{ busquedaCuenta() }}”</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -100,15 +107,18 @@
         <mat-form-field>
           <mat-label>Hacia</mat-label>
           <mat-select formControlName="destinoId">
+            <app-buscador-select [(texto)]="busquedaDestino" placeholder="Buscar cuenta…" />
             <mat-select-trigger>
               @if (destinoElegido(); as c) {
                 <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
               }
             </mat-select-trigger>
-            @for (c of cuentas(); track c.id) {
+            @for (c of cuentasDestino(); track c.id) {
               <mat-option [value]="c.id" [disabled]="c.id === form.controls.cuentaId.value">
                 <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
               </mat-option>
+            } @empty {
+              <mat-option disabled>Sin resultados para “{{ busquedaDestino() }}”</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -126,6 +136,7 @@
       <mat-form-field>
         <mat-label>Categoría</mat-label>
         <mat-select formControlName="categoriaId">
+          <app-buscador-select [(texto)]="busquedaCategoria" placeholder="Buscar categoría…" />
           <mat-select-trigger>
             @if (categoriaElegida(); as c) {
               <span class="flex items-center gap-2">
@@ -133,7 +144,7 @@
               </span>
             }
           </mat-select-trigger>
-          @for (g of grupos(); track g.categoria.id) {
+          @for (g of gruposFiltrados(); track g.categoria.id) {
             <mat-option [value]="g.categoria.id" [disabled]="!g.categoria.activa && g.categoria.id !== editando?.categoria_id">
               <span class="flex items-center gap-2 font-medium">
                 <app-chip-icono [icono]="g.categoria.icono" [color]="g.categoria.color" tamanio="sm" />{{ g.categoria.nombre }}
@@ -147,7 +158,9 @@
               </mat-option>
             }
           } @empty {
-            <mat-option disabled>No tienes categorías de {{ tipo() === 'ingreso' ? 'ingreso' : 'egreso' }} activas</mat-option>
+            <mat-option disabled>
+              {{ busquedaCategoria() ? 'Sin resultados para “' + busquedaCategoria() + '”' : 'No tienes categorías de ' + (tipo() === 'ingreso' ? 'ingreso' : 'egreso') + ' activas' }}
+            </mat-option>
           }
         </mat-select>
         @if (form.controls.categoriaId.touched && form.hasError('faltaCategoria')) {

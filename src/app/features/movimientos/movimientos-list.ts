@@ -19,6 +19,8 @@ import { mensajeDeError } from '../../core/errores';
 import { finDeMes, hoyISO, inicioDeMes, nombreMes, sumarMeses } from '../../core/formato';
 import { EstadoMovimiento, FiltroMovimientos, Movimiento, Pagina, TipoMovimiento, TotalesMovimientos } from '../../core/models';
 import { NotificacionService } from '../../core/notificacion.service';
+import { BuscadorSelect } from '../../shared/buscador-select';
+import { filtrar, filtrarGrupos } from '../../shared/buscar';
 import { ChipIcono } from '../../shared/chip-icono';
 import { EstadoBadge } from '../../shared/estado-badge';
 import { EstadoVacio } from '../../shared/estado-vacio';
@@ -52,7 +54,7 @@ const FILTROS_INICIALES = (): Filtros => ({
   selector: 'app-movimientos-list',
   imports: [
     ReactiveFormsModule, MatButton, MatIconButton, MatFormField, MatLabel, MatPrefix, MatInput, MatIcon, MatMenu,
-    MatMenuItem, MatMenuTrigger, MatPaginator, MatProgressBar, MatSelect, MatOption, MatOptgroup, ChipIcono, EstadoBadge,
+    MatMenuItem, MatMenuTrigger, MatPaginator, MatProgressBar, MatSelect, MatOption, MatOptgroup, BuscadorSelect, ChipIcono, EstadoBadge,
     EstadoVacio, FechaRelativaPipe, Monto, SolesPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -111,8 +113,19 @@ export class MovimientosList {
     };
   });
 
-  protected readonly gruposEgreso = computed(() => this.catalogo.grupos('egreso'));
-  protected readonly gruposIngreso = computed(() => this.catalogo.grupos('ingreso'));
+  // Texto de los buscadores de cada filtro
+  protected readonly busquedaPeriodo = signal('');
+  protected readonly busquedaTipo = signal('');
+  protected readonly busquedaCuenta = signal('');
+  protected readonly busquedaCategoria = signal('');
+  protected readonly busquedaEstado = signal('');
+
+  protected readonly periodosFiltrados = computed(() => filtrar(this.periodos, this.busquedaPeriodo(), (p) => p.etiqueta));
+  protected readonly tiposFiltrados = computed(() => filtrar(this.tipos, this.busquedaTipo(), (t) => TIPOS_MOVIMIENTO[t].etiqueta));
+  protected readonly cuentasFiltradas = computed(() => filtrar(this.catalogo.cuentas(), this.busquedaCuenta(), (c) => c.nombre));
+  protected readonly estadosFiltrados = computed(() => filtrar(this.estados, this.busquedaEstado(), (e) => ESTADOS[e].etiqueta));
+  protected readonly gruposEgresoFiltrados = computed(() => filtrarGrupos(this.catalogo.grupos('egreso'), this.busquedaCategoria()));
+  protected readonly gruposIngresoFiltrados = computed(() => filtrarGrupos(this.catalogo.grupos('ingreso'), this.busquedaCategoria()));
 
   constructor() {
     // Parámetros de la URL → filtros
