@@ -1,0 +1,213 @@
+<div class="flex flex-col gap-6">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex flex-col gap-1.5">
+      <h1 class="m-0 text-[28px] font-semibold tracking-tight">Movimientos</h1>
+      <p class="m-0 text-sm text-muted">Todo lo que entra, sale o se mueve entre tus cuentas.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button matButton="outlined" type="button" (click)="exportar()" [disabled]="exportando() || !resultado()?.total">
+        <mat-icon>download</mat-icon>Exportar CSV
+      </button>
+      <button matButton="filled" type="button" (click)="nuevo()"><mat-icon>add</mat-icon>Nuevo movimiento</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="campo-denso flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface p-3">
+    <mat-form-field class="min-w-[240px] flex-1">
+      <mat-icon matPrefix class="icono-sm ml-3 text-subtle">search</mat-icon>
+      <input matInput [formControl]="busqueda" type="search" aria-label="Buscar por descripción o nota" placeholder="Buscar por descripción o nota" />
+    </mat-form-field>
+    <mat-form-field class="w-48">
+      <mat-label>Periodo</mat-label>
+      <mat-select [value]="filtros().periodo" (valueChange)="cambiarFiltro({ periodo: $event })">
+        <mat-option value="todo">Todo el historial</mat-option>
+        @for (p of periodos; track p.valor) {
+          <mat-option [value]="p.valor">{{ p.etiqueta }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="w-40">
+      <mat-label>Tipo</mat-label>
+      <mat-select [value]="filtros().tipo" (valueChange)="cambiarFiltro({ tipo: $event })">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (t of tipos; track t) {
+          <mat-option [value]="t">{{ etiquetasTipo[t].etiqueta }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="w-44">
+      <mat-label>Cuenta</mat-label>
+      <mat-select [value]="filtros().cuentaId" (valueChange)="cambiarFiltro({ cuentaId: $event })">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (c of catalogo.cuentas(); track c.id) {
+          <mat-option [value]="c.id">{{ c.nombre }}{{ c.archivada ? ' (archivada)' : '' }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="w-48">
+      <mat-label>Categoría</mat-label>
+      <mat-select [value]="filtros().categoriaId" (valueChange)="cambiarFiltro({ categoriaId: $event })">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-optgroup label="Egresos">
+          @for (g of gruposEgreso(); track g.categoria.id) {
+            <ng-container>
+              <mat-option [value]="g.categoria.id">{{ g.categoria.nombre }}</mat-option>
+              @for (s of g.subcategorias; track s.id) {
+                <mat-option [value]="s.id"><span class="pl-4">{{ s.nombre }}</span></mat-option>
+              }
+            </ng-container>
+          }
+        </mat-optgroup>
+        <mat-optgroup label="Ingresos">
+          @for (g of gruposIngreso(); track g.categoria.id) {
+            <ng-container>
+              <mat-option [value]="g.categoria.id">{{ g.categoria.nombre }}</mat-option>
+              @for (s of g.subcategorias; track s.id) {
+                <mat-option [value]="s.id"><span class="pl-4">{{ s.nombre }}</span></mat-option>
+              }
+            </ng-container>
+          }
+        </mat-optgroup>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="w-40">
+      <mat-label>Estado</mat-label>
+      <mat-select [value]="filtros().estado" (valueChange)="cambiarFiltro({ estado: $event })">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (e of estados; track e) {
+          <mat-option [value]="e">{{ etiquetasEstado[e].etiqueta }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    @if (filtroActivo()) {
+      <button matButton type="button" (click)="limpiarFiltros()"><mat-icon>filter_alt_off</mat-icon>Limpiar</button>
+    }
+  </div>
+
+  <section class="overflow-hidden rounded-xl border border-line bg-surface">
+    <!-- Totales de lo filtrado -->
+    <div class="flex flex-wrap items-center gap-y-3 border-b border-line py-4">
+      <div class="flex flex-col gap-0.5 px-6">
+        <span class="text-xs font-medium text-subtle">Ingresos</span>
+        <span class="font-mono text-base font-semibold text-ingreso">+{{ totales()?.ingresos ?? 0 | soles }}</span>
+      </div>
+      <div class="flex flex-col gap-0.5 border-l border-line px-6">
+        <span class="text-xs font-medium text-subtle">Egresos</span>
+        <span class="font-mono text-base font-semibold text-egreso">−{{ totales()?.egresos ?? 0 | soles }}</span>
+      </div>
+      <div class="flex flex-col gap-0.5 border-l border-line px-6">
+        <span class="text-xs font-medium text-subtle">Balance</span>
+        <span class="font-mono text-base font-semibold">{{ (totales()?.ingresos ?? 0) - (totales()?.egresos ?? 0) | soles }}</span>
+      </div>
+      <span class="flex-1 px-6 text-[13px] text-muted">
+        {{ totales()?.cantidad ?? 0 }} {{ totales()?.cantidad === 1 ? 'movimiento' : 'movimientos' }} · las transferencias y los anulados no suman
+      </span>
+    </div>
+
+    <div class="h-1">
+      @if (cargando()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+    </div>
+
+    @if (error()) {
+      <app-estado-vacio icono="cloud_off" titulo="No pudimos cargar tus movimientos" [texto]="error()!">
+        <button matButton="outlined" type="button" (click)="recargar()"><mat-icon>refresh</mat-icon>Reintentar</button>
+      </app-estado-vacio>
+    } @else if (resultado()?.contenido?.length) {
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[900px] border-collapse text-left">
+          <thead>
+            <tr class="border-b border-line bg-surface-2 text-xs font-semibold uppercase tracking-wide text-subtle">
+              <th scope="col" class="h-11 w-24 px-6 font-semibold">Fecha</th>
+              <th scope="col" class="px-4 font-semibold">Descripción</th>
+              <th scope="col" class="w-64 px-4 font-semibold">Cuenta</th>
+              <th scope="col" class="w-32 px-4 font-semibold">Estado</th>
+              <th scope="col" class="w-40 px-4 text-right font-semibold">Monto</th>
+              <th scope="col" class="w-14 px-4"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of resultado()!.contenido; track m.id) {
+              <tr class="h-[60px] border-b border-line last:border-b-0 hover:bg-surface-2">
+                <td class="whitespace-nowrap px-6 text-sm" [class]="m.estado === 'programado' ? 'text-nuevo-fg' : 'text-muted'">
+                  {{ m.fecha | fechaRelativa }}
+                </td>
+                <td class="max-w-0 px-4">
+                  <div class="flex items-center gap-3">
+                    @if (m.tipo === 'transferencia') {
+                      <app-chip-icono icono="swap_horiz" color="#64748B" />
+                    } @else {
+                      <app-chip-icono [icono]="catalogo.categoria(m.categoria_id)?.icono" [color]="catalogo.categoria(m.categoria_id)?.color" />
+                    }
+                    <div class="flex min-w-0 flex-col">
+                      <span class="truncate text-sm font-medium" [class.text-subtle]="m.estado === 'anulado'">{{ titulo(m) }}</span>
+                      <span class="truncate text-xs text-subtle">
+                        {{ m.tipo === 'transferencia' ? 'Transferencia' : catalogo.nombreCategoria(m.categoria_id) }}
+                        @if (m.nota) { · {{ m.nota }} }
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-4 text-sm text-muted">
+                  <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    {{ catalogo.cuenta(m.cuenta_id)?.nombre }}
+                    @if (m.cuenta_destino_id) {
+                      <mat-icon class="icono-xs text-subtle" aria-label="hacia">arrow_forward</mat-icon>
+                      {{ catalogo.cuenta(m.cuenta_destino_id)?.nombre }}
+                    }
+                  </span>
+                </td>
+                <td class="px-4"><app-estado-badge [estado]="m.estado" /></td>
+                <td class="px-4 text-right"><app-monto [tipo]="m.tipo" [monto]="m.monto" [estado]="m.estado" /></td>
+                <td class="px-4 text-right">
+                  @if (accionesDe(m.estado).length) {
+                    <button matIconButton type="button" [matMenuTriggerFor]="menu" [attr.aria-label]="'Acciones de ' + titulo(m)">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #menu="matMenu" xPosition="before">
+                      @for (a of accionesDe(m.estado); track a) {
+                        @switch (a) {
+                          @case ('confirmar') {
+                            <button mat-menu-item type="button" (click)="confirmar(m)"><mat-icon>check_circle</mat-icon>Confirmar</button>
+                          }
+                          @case ('editar') {
+                            <button mat-menu-item type="button" (click)="editar(m)"><mat-icon>edit</mat-icon>Editar</button>
+                          }
+                          @case ('anular') {
+                            <button mat-menu-item type="button" (click)="anular(m)" class="text-critico!"><mat-icon class="text-critico!">block</mat-icon>Anular</button>
+                          }
+                        }
+                      }
+                    </mat-menu>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <mat-paginator
+        class="border-t border-line"
+        [length]="resultado()!.total"
+        [pageIndex]="pagina()"
+        [pageSize]="tamanio()"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="cambiarPagina($event)"
+      />
+    } @else if (resultado() && filtroActivo()) {
+      <app-estado-vacio icono="search_off" titulo="No hay movimientos con esos filtros" texto="Prueba con otro periodo o quita algún filtro.">
+        <button matButton="outlined" type="button" (click)="limpiarFiltros()"><mat-icon>filter_alt_off</mat-icon>Limpiar filtros</button>
+      </app-estado-vacio>
+    } @else if (resultado()) {
+      <app-estado-vacio
+        icono="receipt_long"
+        titulo="Todavía no hay movimientos en este periodo"
+        texto="Registra tus ingresos, gastos y transferencias para ver a dónde se va tu dinero."
+      >
+        <button matButton="filled" type="button" (click)="nuevo()"><mat-icon>add</mat-icon>Registrar movimiento</button>
+      </app-estado-vacio>
+    }
+  </section>
+</div>

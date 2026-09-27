@@ -1,0 +1,241 @@
+@if (noEncontrada()) {
+  <section class="rounded-xl border border-line bg-surface">
+    <app-estado-vacio icono="search_off" titulo="No encontramos esta cuenta" texto="Puede que se haya eliminado.">
+      <a matButton="outlined" routerLink="/cuentas"><mat-icon>arrow_back</mat-icon>Volver a cuentas</a>
+    </app-estado-vacio>
+  </section>
+} @else if (cuenta(); as c) {
+  <div class="flex flex-col gap-6">
+    <nav aria-label="Ruta" class="-mb-3 flex items-center gap-1.5 text-[13px] text-subtle">
+      <a routerLink="/cuentas" class="text-muted no-underline hover:underline">Cuentas</a>
+      <mat-icon class="icono-xs" aria-hidden="true">chevron_right</mat-icon>
+      <span aria-current="page">{{ c.nombre }}</span>
+    </nav>
+
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex min-w-0 items-center gap-4">
+        <app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="xl" />
+        <div class="flex min-w-0 flex-col gap-1">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h1 class="m-0 truncate text-[28px] font-semibold tracking-tight">{{ c.nombre }}</h1>
+            <span class="rounded-full bg-neutro-bg px-2.5 py-0.5 text-xs font-semibold text-neutro-fg">{{ tipos[c.tipo].etiqueta }}</span>
+            @if (c.archivada) {
+              <span class="rounded-full bg-neutro-bg px-2.5 py-0.5 text-xs font-semibold text-neutro-fg">Archivada</span>
+            } @else {
+              <span class="rounded-full bg-exito-bg px-2.5 py-0.5 text-xs font-semibold text-exito-fg">Activa</span>
+            }
+          </div>
+          <p class="m-0 text-sm text-muted">Soles · {{ c.cantidad_movimientos }} movimientos confirmados</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button matButton type="button" (click)="editar()"><mat-icon>edit</mat-icon>Editar</button>
+        @if (c.archivada) {
+          <button matButton="outlined" type="button" (click)="archivar(false)"><mat-icon>unarchive</mat-icon>Restaurar</button>
+        } @else {
+          <button matButton="outlined" type="button" (click)="archivar(true)"><mat-icon>inventory_2</mat-icon>Archivar</button>
+          <button matButton="outlined" type="button" (click)="nuevoMovimiento(true)">
+            <mat-icon>swap_horiz</mat-icon>{{ esTarjeta() ? 'Pagar tarjeta' : 'Transferir' }}
+          </button>
+          <button matButton="filled" type="button" (click)="nuevoMovimiento()"><mat-icon>add</mat-icon>Nuevo movimiento</button>
+        }
+        <button matIconButton type="button" [matMenuTriggerFor]="mas" aria-label="Más acciones de la cuenta"><mat-icon>more_vert</mat-icon></button>
+        <mat-menu #mas="matMenu" xPosition="before">
+          <a mat-menu-item routerLink="/movimientos" [queryParams]="{ cuenta: c.id }"><mat-icon>receipt_long</mat-icon>Ver todos sus movimientos</a>
+          <button mat-menu-item type="button" (click)="eliminar()" class="text-critico!"><mat-icon class="text-critico!">delete</mat-icon>Eliminar cuenta</button>
+        </mat-menu>
+      </div>
+    </div>
+
+    @if (error()) {
+      <p class="m-0 rounded-lg bg-peligro-bg px-3 py-2 text-sm text-peligro-fg" role="alert">{{ error() }}</p>
+    }
+
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div class="flex min-w-0 flex-col gap-5">
+        <!-- Saldo y evolución -->
+        <section class="flex flex-col gap-5 rounded-xl border border-line bg-surface p-6">
+          <div class="flex flex-wrap items-end justify-between gap-6">
+            <div class="flex flex-col gap-1">
+              <span class="text-[13px] font-medium text-muted">{{ esTarjeta() ? 'Deuda actual' : 'Saldo actual' }}</span>
+              <span class="text-[40px] leading-tight font-semibold tracking-tight tabular-nums" [class.text-egreso]="c.saldo_actual < 0">
+                {{ c.saldo_actual | soles }}
+              </span>
+              @if (flujo()) {
+                <span class="text-[13px] text-muted">
+                  <strong [class]="variacionMes() >= 0 ? 'text-ingreso' : 'text-egreso'">{{ variacionMes() >= 0 ? '+' : '' }}{{ variacionMes() | soles }}</strong>
+                  desde el 1 de {{ mes }}
+                </span>
+              }
+            </div>
+            @if (flujo(); as f) {
+              <dl class="m-0 flex flex-wrap gap-8">
+                <div class="flex flex-col gap-0.5">
+                  <dt class="text-xs font-medium text-subtle">Entradas del mes</dt>
+                  <dd class="m-0 font-mono text-[15px] font-semibold text-ingreso">+{{ f.entradas | soles }}</dd>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                  <dt class="text-xs font-medium text-subtle">Salidas del mes</dt>
+                  <dd class="m-0 font-mono text-[15px] font-semibold text-egreso">−{{ f.salidas | soles }}</dd>
+                </div>
+                @if (f.programado) {
+                  <div class="flex flex-col gap-0.5">
+                    <dt class="text-xs font-medium text-subtle">Programado</dt>
+                    <dd class="m-0 font-mono text-[15px] font-semibold text-nuevo-fg">{{ f.programado | soles }}</dd>
+                  </div>
+                }
+              </dl>
+            }
+          </div>
+
+          @if (grafico(); as g) {
+            <div class="flex flex-col gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wide text-subtle">Saldo al cierre de cada mes</span>
+              <div class="relative mx-3 mt-2 h-40" role="img" [attr.aria-label]="'Saldo al cierre de cada mes. ' + g.resumen">
+                <div class="absolute inset-x-0 top-0 h-px bg-line"></div>
+                <div class="absolute inset-x-0 top-1/2 h-px bg-line"></div>
+                <div class="absolute inset-x-0 bottom-0 h-px bg-line"></div>
+                <svg class="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  <polygon [attr.points]="g.area" class="fill-primary/10" />
+                  <polyline [attr.points]="g.linea" fill="none" class="stroke-primary" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+                </svg>
+                @for (p of g.marcas; track p.x) {
+                  <span
+                    class="absolute size-2.5 -translate-x-1/2 translate-y-1/2 rounded-full border-2 border-primary"
+                    [class]="p.ultimo ? 'bg-primary size-3!' : 'bg-surface'"
+                    [style.left.%]="p.x"
+                    [style.bottom.%]="p.y"
+                    [matTooltip]="p.texto"
+                  ></span>
+                }
+              </div>
+              <div class="mx-3 flex justify-between">
+                @for (p of g.marcas; track p.x) {
+                  <span class="w-0 text-center text-xs" [class]="p.ultimo ? 'font-bold text-ink' : 'text-subtle'">
+                    <span class="-ml-5 inline-block w-10">{{ p.etiqueta }}</span>
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </section>
+
+        <!-- Movimientos de la cuenta -->
+        <section class="overflow-hidden rounded-xl border border-line bg-surface">
+          <div class="flex h-14 items-center justify-between gap-3 border-b border-line px-6">
+            <h2 class="m-0 text-base font-semibold">Movimientos de esta cuenta</h2>
+            <a routerLink="/movimientos" [queryParams]="{ cuenta: c.id }" class="text-sm font-medium text-primary no-underline hover:underline">Ver todos</a>
+          </div>
+          @if (movimientos() === null) {
+            <mat-progress-bar mode="indeterminate" />
+          } @else if (filas().length) {
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[640px] border-collapse text-left">
+                <thead>
+                  <tr class="border-b border-line bg-surface-2 text-xs font-semibold uppercase tracking-wide text-subtle">
+                    <th scope="col" class="h-11 w-24 px-6 font-semibold">Fecha</th>
+                    <th scope="col" class="px-4 font-semibold">Descripción</th>
+                    <th scope="col" class="w-32 px-4 font-semibold">Estado</th>
+                    <th scope="col" class="w-36 px-4 text-right font-semibold">Monto</th>
+                    <th scope="col" class="w-32 px-4 text-right font-semibold">Saldo</th>
+                    <th scope="col" class="w-12 pr-4"><span class="sr-only">Acciones</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (f of filas(); track f.m.id) {
+                    <tr class="h-14 border-b border-line last:border-b-0 hover:bg-surface-2">
+                      <td class="whitespace-nowrap px-6 text-sm" [class]="f.m.estado === 'programado' ? 'text-nuevo-fg' : 'text-muted'">{{ f.m.fecha | fechaRelativa }}</td>
+                      <td class="max-w-0 px-4">
+                        <div class="flex items-center gap-3">
+                          @if (f.m.tipo === 'transferencia') {
+                            <app-chip-icono icono="swap_horiz" color="#64748B" />
+                          } @else {
+                            <app-chip-icono [icono]="catalogo.categoria(f.m.categoria_id)?.icono" [color]="catalogo.categoria(f.m.categoria_id)?.color" />
+                          }
+                          <div class="flex min-w-0 flex-col">
+                            <span class="truncate text-sm font-medium">{{ titulo(f.m) }}</span>
+                            <span class="truncate text-xs text-subtle">{{ f.m.tipo === 'transferencia' ? 'Transferencia' : catalogo.nombreCategoria(f.m.categoria_id) }}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-4"><app-estado-badge [estado]="f.m.estado" /></td>
+                      <td class="px-4 text-right">
+                        <app-monto [tipo]="f.m.tipo" [monto]="f.m.monto" [estado]="f.m.estado" [sentido]="f.entrada ? 'entrada' : 'salida'" />
+                      </td>
+                      <td class="px-4 text-right font-mono text-sm text-muted">{{ f.saldo === null ? '—' : (f.saldo | soles) }}</td>
+                      <td class="pr-4 text-right">
+                        <button matIconButton type="button" [matMenuTriggerFor]="menu" [attr.aria-label]="'Acciones de ' + titulo(f.m)"><mat-icon>more_vert</mat-icon></button>
+                        <mat-menu #menu="matMenu" xPosition="before">
+                          @for (a of accionesDe(f.m.estado); track a) {
+                            @switch (a) {
+                              @case ('confirmar') {
+                                <button mat-menu-item type="button" (click)="confirmarMovimiento(f.m)"><mat-icon>check_circle</mat-icon>Confirmar</button>
+                              }
+                              @case ('editar') {
+                                <button mat-menu-item type="button" (click)="editarMovimiento(f.m)"><mat-icon>edit</mat-icon>Editar</button>
+                              }
+                              @case ('anular') {
+                                <button mat-menu-item type="button" (click)="anularMovimiento(f.m)" class="text-critico!"><mat-icon class="text-critico!">block</mat-icon>Anular</button>
+                              }
+                            }
+                          }
+                        </mat-menu>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <app-estado-vacio icono="receipt_long" titulo="Esta cuenta aún no tiene movimientos" texto="Registra un ingreso, un gasto o una transferencia.">
+              @if (!c.archivada) {
+                <button matButton="outlined" type="button" (click)="nuevoMovimiento()"><mat-icon>add</mat-icon>Nuevo movimiento</button>
+              }
+            </app-estado-vacio>
+          }
+        </section>
+      </div>
+
+      <div class="flex flex-col gap-5">
+        <section class="overflow-hidden rounded-xl border border-line bg-surface">
+          <div class="flex h-14 items-center border-b border-line px-5"><h2 class="m-0 text-base font-semibold">Detalles</h2></div>
+          <dl class="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 px-5 py-2 text-sm">
+            <dt class="border-b border-line py-3 text-subtle">Tipo</dt>
+            <dd class="m-0 border-b border-line py-3 text-right font-medium">{{ tipos[c.tipo].etiqueta }}</dd>
+            <dt class="border-b border-line py-3 text-subtle">Moneda</dt>
+            <dd class="m-0 border-b border-line py-3 text-right font-medium">Soles (S/)</dd>
+            <dt class="border-b border-line py-3 text-subtle">{{ esTarjeta() ? 'Deuda inicial' : 'Saldo inicial' }}</dt>
+            <dd class="m-0 border-b border-line py-3 text-right font-mono font-medium">{{ c.saldo_inicial | soles }}</dd>
+            <dt class="py-3 text-subtle">Movimientos</dt>
+            <dd class="m-0 py-3 text-right font-medium">{{ c.cantidad_movimientos }} confirmados</dd>
+          </dl>
+        </section>
+
+        <section class="overflow-hidden rounded-xl border border-line bg-surface">
+          <div class="flex h-14 items-center border-b border-line px-5"><h2 class="m-0 text-base font-semibold">Tus cuentas</h2></div>
+          <nav aria-label="Tus cuentas" class="flex flex-col gap-0.5 p-2">
+            @for (o of catalogo.cuentasActivas(); track o.id) {
+              <a
+                [routerLink]="['/cuentas', o.id]"
+                [attr.aria-current]="o.id === c.id ? 'page' : null"
+                class="flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-ink no-underline hover:bg-surface-2"
+                [class]="o.id === c.id ? 'bg-nav-active! text-nav-active-ink!' : ''"
+              >
+                <app-chip-icono [icono]="o.icono" [color]="o.color" />
+                <span class="flex-1 truncate text-sm font-medium">{{ o.nombre }}</span>
+                <span class="font-mono text-[13px] font-semibold" [class]="o.saldo_actual < 0 ? 'text-egreso' : 'text-muted'">{{ o.saldo_actual | soles }}</span>
+              </a>
+            }
+          </nav>
+        </section>
+
+        <p class="m-0 flex gap-3 rounded-xl bg-primary-soft p-4 text-[13px] leading-normal text-nav-active-ink">
+          <mat-icon class="icono-sm shrink-0" aria-hidden="true">info</mat-icon>
+          <span>Las cuentas con movimientos no se eliminan: se <strong>archivan</strong> para que tu historial siga cuadrando.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+} @else {
+  <mat-progress-bar mode="indeterminate" />
+}

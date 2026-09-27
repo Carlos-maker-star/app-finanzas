@@ -1,0 +1,108 @@
+<div class="flex h-dvh overflow-hidden bg-app text-ink">
+  <!-- Fondo oscuro detrás del menú en pantallas chicas -->
+  @if (menuAbierto()) {
+    <div class="fixed inset-0 z-30 bg-black/40 lg:hidden" (click)="menuAbierto.set(false)" aria-hidden="true"></div>
+  }
+
+  <!-- Menú lateral: 248px (w-62). En móvil se desliza; en lg queda fijo. -->
+  <aside
+    class="fixed inset-y-0 left-0 z-40 flex w-62 shrink-0 flex-col gap-7 overflow-y-auto border-r border-line bg-surface px-4 py-5 transition-transform lg:static lg:translate-x-0"
+    [class.-translate-x-full]="!menuAbierto()"
+  >
+    <a routerLink="/dashboard" class="flex items-center gap-3 px-2 py-1 text-ink no-underline">
+      <span class="flex size-9 items-center justify-center rounded-[10px] bg-primary text-on-primary">
+        <mat-icon class="icono-sm" aria-hidden="true">{{ marca.icono }}</mat-icon>
+      </span>
+      <span class="flex flex-col">
+        <span class="text-base font-bold tracking-tight">{{ marca.nombre }}</span>
+        <span class="text-xs text-subtle">{{ marca.subtitulo }}</span>
+      </span>
+    </a>
+
+    @for (seccion of navegacion(); track seccion.titulo) {
+      <nav [attr.aria-label]="seccion.titulo" class="flex flex-col gap-1">
+        <span class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">{{ seccion.titulo }}</span>
+        @for (item of seccion.items; track item.ruta) {
+          <a
+            [routerLink]="item.ruta"
+            routerLinkActive="bg-nav-active! text-nav-active-ink!"
+            ariaCurrentWhenActive="page"
+            (click)="menuAbierto.set(false)"
+            class="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted no-underline hover:bg-surface-2"
+          >
+            <mat-icon class="icono-sm" aria-hidden="true">{{ item.icono }}</mat-icon>
+            {{ item.etiqueta }}
+          </a>
+        }
+      </nav>
+    }
+
+    <div class="flex-1"></div>
+
+    @if (auth.autenticado()) {
+      <div class="flex items-center gap-3 rounded-xl border border-line bg-surface-2 p-3">
+        <app-avatar [nombre]="nombre()" tamanio="md" />
+        <div class="flex min-w-0 flex-1 flex-col">
+          <span class="truncate text-sm font-semibold">{{ nombre() }}</span>
+          <span class="truncate text-xs text-subtle">{{ roles[auth.perfil()?.rol ?? 'usuario'] }}</span>
+        </div>
+        <button matIconButton type="button" (click)="auth.logout()" aria-label="Cerrar sesión" matTooltip="Cerrar sesión">
+          <mat-icon class="icono-sm">logout</mat-icon>
+        </button>
+      </div>
+    }
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- Barra superior: 64px -->
+    <header class="flex h-16 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 sm:px-8">
+      <button matIconButton type="button" class="lg:hidden!" (click)="menuAbierto.set(true)" aria-label="Abrir menú">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span class="flex-1 truncate text-sm font-semibold">{{ titulo() }}</span>
+
+      <form class="hidden md:block" (submit)="$event.preventDefault(); buscar(busqueda.value)" role="search">
+        <label class="flex h-10 w-80 items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 text-subtle">
+          <mat-icon class="icono-xs" aria-hidden="true">search</mat-icon>
+          <input
+            #busqueda
+            type="search"
+            aria-label="Buscar movimientos"
+            placeholder="Buscar movimientos…"
+            class="w-full border-0 bg-transparent font-sans text-sm text-ink outline-none placeholder:text-subtle"
+          />
+        </label>
+      </form>
+
+      <button
+        matIconButton
+        type="button"
+        (click)="tema.alternar()"
+        [attr.aria-label]="tema.oscuro() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        [matTooltip]="tema.oscuro() ? 'Modo claro' : 'Modo oscuro'"
+      >
+        <mat-icon>{{ tema.oscuro() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+    </header>
+
+    <main class="flex-1 overflow-y-auto">
+      <div class="mx-auto w-full max-w-[1280px] p-4 sm:p-8">
+        @if (auth.desactivado()) {
+          <!-- El RLS ya le niega los datos: aquí solo se explica por qué -->
+          <div class="mx-auto flex max-w-md flex-col items-center gap-3 rounded-xl border border-line bg-surface px-6 py-12 text-center">
+            <span class="flex size-12 items-center justify-center rounded-full bg-peligro-bg text-peligro-fg">
+              <mat-icon aria-hidden="true">block</mat-icon>
+            </span>
+            <h1 class="m-0 text-lg font-semibold">Tu cuenta está desactivada</h1>
+            <p class="m-0 text-sm text-muted">
+              Un administrador desactivó tu acceso. Tus datos siguen guardados; si crees que es un error, comunícate con el administrador.
+            </p>
+            <button matButton="outlined" type="button" (click)="auth.logout()"><mat-icon>logout</mat-icon>Cerrar sesión</button>
+          </div>
+        } @else {
+          <router-outlet />
+        }
+      </div>
+    </main>
+  </div>
+</div>

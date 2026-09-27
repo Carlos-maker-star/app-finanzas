@@ -1,0 +1,195 @@
+<h2 mat-dialog-title>{{ editando ? 'Editar movimiento' : 'Nuevo movimiento' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+  <mat-dialog-content class="flex! flex-col gap-4 pt-2!">
+    @if (catalogo.cargado() && catalogo.cuentasActivas().length === 0 && !editando) {
+      <div class="flex flex-col items-start gap-3 rounded-xl bg-primary-soft p-4 text-sm text-nav-active-ink" role="status">
+        <span>Para registrar movimientos primero necesitas una cuenta (efectivo, banco, tarjeta…).</span>
+        <button matButton="filled" type="button" (click)="irACuentas()"><mat-icon>add</mat-icon>Crear mi primera cuenta</button>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="m-0 rounded-lg bg-peligro-bg px-3 py-2 text-sm text-peligro-fg" role="alert">{{ error() }}</p>
+    }
+
+    <mat-button-toggle-group formControlName="tipo" aria-label="Tipo de movimiento" class="grid! grid-cols-3" hideSingleSelectionIndicator>
+      @for (t of tipos; track t) {
+        <mat-button-toggle [value]="t">
+          <span class="inline-flex items-center gap-1.5" [class]="tipo() === t ? etiquetasTipo[t].texto : ''">
+            <mat-icon class="icono-sm" aria-hidden="true">{{ etiquetasTipo[t].icono }}</mat-icon>{{ etiquetasTipo[t].etiqueta }}
+          </span>
+        </mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+
+    <mat-form-field>
+      <mat-label>Monto</mat-label>
+      <span matTextPrefix class="mr-1 text-lg font-semibold text-subtle">S/</span>
+      <input
+        #montoInput
+        matInput
+        formControlName="monto"
+        inputmode="decimal"
+        autocomplete="off"
+        placeholder="0.00"
+        class="font-mono text-2xl! font-semibold"
+        [class]="etiquetasTipo[tipo()].texto"
+      />
+      @if (form.controls.monto.hasError('required')) {
+        <mat-error>Escribe el monto</mat-error>
+      } @else if (form.controls.monto.hasError('formato')) {
+        <mat-error>Usa solo números, con hasta 2 decimales (ej. 45.90)</mat-error>
+      } @else if (form.controls.monto.hasError('positivo')) {
+        <mat-error>El monto debe ser mayor que cero</mat-error>
+      } @else if (form.controls.monto.hasError('maximo')) {
+        <mat-error>El monto es demasiado grande</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <mat-form-field>
+        <mat-label>Fecha</mat-label>
+        <input matInput type="date" formControlName="fecha" />
+        @if (form.controls.fecha.hasError('required')) {
+          <mat-error>Elige la fecha</mat-error>
+        }
+      </mat-form-field>
+
+      @if (tipo() !== 'transferencia') {
+        <mat-form-field>
+          <mat-label>Cuenta</mat-label>
+          <mat-select formControlName="cuentaId">
+            <mat-select-trigger>
+              @if (cuentaElegida(); as c) {
+                <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
+              }
+            </mat-select-trigger>
+            @for (c of cuentas(); track c.id) {
+              <mat-option [value]="c.id">
+                <span class="flex items-center gap-2">
+                  <app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />
+                  <span class="flex-1">{{ c.nombre }}</span>
+                  <span class="font-mono text-xs text-subtle">{{ c.saldo_actual | soles }}</span>
+                </span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+
+    @if (tipo() === 'transferencia') {
+      <div class="grid items-start gap-2 sm:grid-cols-[minmax(0,1fr)_24px_minmax(0,1fr)]">
+        <mat-form-field>
+          <mat-label>Desde</mat-label>
+          <mat-select formControlName="cuentaId">
+            <mat-select-trigger>
+              @if (cuentaElegida(); as c) {
+                <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
+              }
+            </mat-select-trigger>
+            @for (c of cuentas(); track c.id) {
+              <mat-option [value]="c.id">
+                <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-icon class="mt-4 hidden text-subtle sm:block" aria-hidden="true">arrow_forward</mat-icon>
+        <mat-form-field>
+          <mat-label>Hacia</mat-label>
+          <mat-select formControlName="destinoId">
+            <mat-select-trigger>
+              @if (destinoElegido(); as c) {
+                <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
+              }
+            </mat-select-trigger>
+            @for (c of cuentas(); track c.id) {
+              <mat-option [value]="c.id" [disabled]="c.id === form.controls.cuentaId.value">
+                <span class="flex items-center gap-2"><app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ c.nombre }}</span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      @if (form.touched && form.hasError('faltaDestino')) {
+        <p class="-mt-2 m-0 text-xs text-critico" role="alert">Elige la cuenta que recibe el dinero.</p>
+      } @else if (form.hasError('cuentasIguales')) {
+        <p class="-mt-2 m-0 text-xs text-critico" role="alert">Elige dos cuentas distintas.</p>
+      }
+      <p class="m-0 flex gap-2.5 rounded-xl bg-primary-soft px-3.5 py-3 text-[13px] leading-normal text-nav-active-ink">
+        <mat-icon class="icono-sm shrink-0" aria-hidden="true">info</mat-icon>
+        <span>Mueve dinero entre tus cuentas. <strong>No cuenta como ingreso ni egreso</strong> en tus reportes. Úsala también para pagar tu tarjeta.</span>
+      </p>
+    } @else {
+      <mat-form-field>
+        <mat-label>Categoría</mat-label>
+        <mat-select formControlName="categoriaId">
+          <mat-select-trigger>
+            @if (categoriaElegida(); as c) {
+              <span class="flex items-center gap-2">
+                <app-chip-icono [icono]="c.icono" [color]="c.color" tamanio="sm" />{{ catalogo.nombreCategoria(c.id) }}
+              </span>
+            }
+          </mat-select-trigger>
+          @for (g of grupos(); track g.categoria.id) {
+            <mat-option [value]="g.categoria.id" [disabled]="!g.categoria.activa && g.categoria.id !== editando?.categoria_id">
+              <span class="flex items-center gap-2 font-medium">
+                <app-chip-icono [icono]="g.categoria.icono" [color]="g.categoria.color" tamanio="sm" />{{ g.categoria.nombre }}
+              </span>
+            </mat-option>
+            @for (s of g.subcategorias; track s.id) {
+              <mat-option [value]="s.id">
+                <span class="flex items-center gap-2 pl-8">
+                  <app-chip-icono [icono]="s.icono" [color]="s.color" tamanio="sm" />{{ s.nombre }}
+                </span>
+              </mat-option>
+            }
+          } @empty {
+            <mat-option disabled>No tienes categorías de {{ tipo() === 'ingreso' ? 'ingreso' : 'egreso' }} activas</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.categoriaId.touched && form.hasError('faltaCategoria')) {
+          <mat-hint class="text-critico!">Elige una categoría</mat-hint>
+        }
+      </mat-form-field>
+    }
+
+    <mat-form-field>
+      <mat-label>Descripción</mat-label>
+      <input matInput formControlName="descripcion" maxlength="200" placeholder="Ej. Plaza Vea, sueldo, taxi…" />
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Nota (opcional)</mat-label>
+      <textarea matInput formControlName="nota" rows="2" maxlength="1000" placeholder="Algo que quieras recordar de este movimiento"></textarea>
+    </mat-form-field>
+
+    @if (mostrarProgramado) {
+      <div class="rounded-xl border border-line bg-surface-2 px-2 py-1">
+        <mat-checkbox formControlName="programado">
+          <span class="flex flex-col">
+            <span class="font-medium">Es un pago futuro</span>
+            <span class="text-xs text-subtle">Quedará como <strong class="text-nuevo-fg">Programado</strong> y no afectará tu saldo hasta que lo confirmes.</span>
+          </span>
+        </mat-checkbox>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <div class="h-1">
+    @if (guardando()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+  </div>
+
+  <mat-dialog-actions>
+    @if (!editando) {
+      <button matButton type="button" (click)="guardar(true)" [disabled]="guardando()">Guardar y registrar otro</button>
+    }
+    <span class="flex-1"></span>
+    <button matButton="outlined" type="button" (click)="cerrar()">Cancelar</button>
+    <button matButton="filled" type="submit" [disabled]="guardando()"><mat-icon>check</mat-icon>Guardar</button>
+  </mat-dialog-actions>
+</form>

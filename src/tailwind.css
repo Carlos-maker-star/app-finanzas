@@ -1,0 +1,133 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens del sistema visual de MisFinanzas. Paleta: Azul (finanzas).
+ * Para cambiar de paleta, reemplaza solo el bloque "Primario" de :root y .dark
+ * (y los mismos hex en material.scss). Neutros, estados y montos se mantienen.
+ * Los componentes NUNCA usan hex: solo estas utilidades (bg-surface, text-muted, text-ingreso…).
+ * Excepción: el color propio de cada cuenta/categoría, que es un dato del usuario.
+ */
+
+/* Modo oscuro por clase: TemaService pone/quita `dark` en <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --color-app: var(--app-bg);
+  --color-surface: var(--app-surface);
+  --color-surface-2: var(--app-surface-2);
+  --color-line: var(--app-border);
+  --color-ink: var(--app-text);
+  --color-muted: var(--app-muted);
+  --color-subtle: var(--app-subtle);
+  --color-track: var(--app-track);
+
+  --color-primary: var(--app-primary);
+  --color-primary-soft: var(--app-primary-soft);
+  --color-on-primary: var(--app-on-primary);
+  --color-nav-active: var(--app-nav-active);
+  --color-nav-active-ink: var(--app-nav-active-text);
+  --color-brand-panel: var(--app-brand-panel);
+
+  /* Estados: roles semánticos. En core/etiquetas.ts cada estado del dominio apunta a uno. */
+  --color-nuevo-bg: var(--app-nuevo-bg);
+  --color-nuevo-fg: var(--app-nuevo-fg);
+  --color-curso-bg: var(--app-curso-bg);
+  --color-curso-fg: var(--app-curso-fg);
+  --color-exito-bg: var(--app-exito-bg);
+  --color-exito-fg: var(--app-exito-fg);
+  --color-neutro-bg: var(--app-neutro-bg);
+  --color-neutro-fg: var(--app-neutro-fg);
+  --color-peligro-bg: var(--app-peligro-bg);
+  --color-peligro-fg: var(--app-peligro-fg);
+  --color-critico: var(--app-critico);
+
+  /* Dinero: texto de montos y barras de gráficos (distinta luminosidad, no solo distinto tono) */
+  --color-ingreso: var(--app-ingreso);
+  --color-egreso: var(--app-egreso);
+  --color-ingreso-barra: var(--app-ingreso-barra);
+  --color-egreso-barra: var(--app-egreso-barra);
+}
+
+:root {
+  /* Neutros fríos */
+  --app-bg: #f5f6f8;
+  --app-surface: #ffffff;
+  --app-surface-2: #f9fafb;
+  --app-border: #e4e7ec;
+  --app-text: #101828;
+  --app-muted: #475467;
+  --app-subtle: #667085;
+  --app-track: #f2f4f7;
+
+  /* Primario (Azul) */
+  --app-primary: #1d4ed8;
+  --app-primary-soft: #eff6ff;
+  --app-on-primary: #ffffff;
+  --app-nav-active: #eff6ff;
+  --app-nav-active-text: #1e40af;
+  --app-brand-panel: #1e3a8a;
+
+  /* `nuevo` en celeste para no confundirse con el primario azul */
+  --app-nuevo-bg: #e0f2fe;
+  --app-nuevo-fg: #075985;
+  --app-curso-bg: #fef3c7;
+  --app-curso-fg: #92400e;
+  --app-exito-bg: #dcfce7;
+  --app-exito-fg: #166534;
+  --app-neutro-bg: #eaecf0;
+  --app-neutro-fg: #344054;
+  --app-peligro-bg: #fee2e2;
+  --app-peligro-fg: #991b1b;
+  --app-critico: #dc2626;
+
+  --app-ingreso: #15803d;
+  --app-egreso: #b42318;
+  --app-ingreso-barra: #15803d;
+  --app-egreso-barra: #f87171;
+}
+
+.dark {
+  --app-bg: #0b0f17;
+  --app-surface: #121926;
+  --app-surface-2: #0e1420;
+  --app-border: #223044;
+  --app-text: #e6eaf2;
+  --app-muted: #a3aec2;
+  --app-subtle: #8592a8;
+  --app-track: #1b2433;
+
+  /* Primario (Azul) */
+  --app-primary: #60a5fa;
+  --app-primary-soft: rgb(96 165 250 / 0.14);
+  --app-on-primary: #0b0f17;
+  --app-nav-active: rgb(96 165 250 / 0.14);
+  --app-nav-active-text: #bfdbfe;
+  --app-brand-panel: #0f1d45;
+
+  --app-nuevo-bg: rgb(14 165 233 / 0.18);
+  --app-nuevo-fg: #7dd3fc;
+  --app-curso-bg: rgb(245 158 11 / 0.18);
+  --app-curso-fg: #fcd34d;
+  --app-exito-bg: rgb(34 197 94 / 0.18);
+  --app-exito-fg: #86efac;
+  --app-neutro-bg: rgb(152 162 179 / 0.16);
+  --app-neutro-fg: #d0d5dd;
+  --app-peligro-bg: rgb(239 68 68 / 0.18);
+  --app-peligro-fg: #fca5a5;
+  --app-critico: #f87171;
+
+  --app-ingreso: #4ade80;
+  --app-egreso: #f87171;
+  --app-ingreso-barra: #4ade80;
+  --app-egreso-barra: #dc2626;
+}
+
+@layer base {
+  body {
+    @apply bg-app font-sans text-ink antialiased;
+    margin: 0;
+  }
+}
